@@ -672,8 +672,13 @@ function getDefinitionFromSymbol(typeChecker: TypeChecker, symbol: Symbol, node:
  * @internal
  */
 export function createDefinitionInfo(declaration: Declaration, checker: TypeChecker, symbol: Symbol, node: Node, unverified?: boolean, failedAliasResolution?: boolean): DefinitionInfo {
+    // For merged symbols (e.g., namespace + class + interface with the same name),
+    // each declaration may have a different kind. Get the kind per-declaration
+    // instead of using the symbol's aggregated kind.
+    const symbolKind = symbol.declarations && symbol.declarations.length > 1
+        ? getDeclarationKind(declaration)
+        : SymbolDisplay.getSymbolKind(checker, symbol, node);
     const symbolName = checker.symbolToString(symbol); // Do not get scoped name, just the name of the symbol
-    const symbolKind = SymbolDisplay.getSymbolKind(checker, symbol, node);
     const containerName = symbol.parent ? checker.symbolToString(symbol.parent, node) : "";
     return createDefinitionInfoFromName(checker, declaration, symbolKind, symbolName, containerName, unverified, failedAliasResolution);
 }
@@ -796,5 +801,42 @@ function isJsxConstructorLike(node: Node): boolean {
             return true;
         default:
             return false;
+    }
+}
+
+function getDeclarationKind(declaration: Declaration): ScriptElementKind {
+    switch (declaration.kind) {
+        case SyntaxKind.ClassDeclaration:
+        case SyntaxKind.ClassExpression:
+            return ScriptElementKind.classElement;
+        case SyntaxKind.InterfaceDeclaration:
+            return ScriptElementKind.interfaceElement;
+        case SyntaxKind.TypeAliasDeclaration:
+            return ScriptElementKind.typeElement;
+        case SyntaxKind.EnumDeclaration:
+            return ScriptElementKind.enumElement;
+        case SyntaxKind.EnumMember:
+            return ScriptElementKind.enumMemberElement;
+        case SyntaxKind.ModuleDeclaration:
+            return ScriptElementKind.moduleElement;
+        case SyntaxKind.FunctionDeclaration:
+            return ScriptElementKind.functionElement;
+        case SyntaxKind.MethodDeclaration:
+        case SyntaxKind.MethodSignature:
+            return ScriptElementKind.memberFunctionElement;
+        case SyntaxKind.PropertyDeclaration:
+        case SyntaxKind.PropertySignature:
+            return ScriptElementKind.memberVariableElement;
+        case SyntaxKind.VariableDeclaration:
+            return ScriptElementKind.variableElement;
+        case SyntaxKind.Parameter:
+            return ScriptElementKind.parameterElement;
+        case SyntaxKind.ImportEqualsDeclaration:
+        case SyntaxKind.ImportDeclaration:
+        case SyntaxKind.ExportDeclaration:
+        case SyntaxKind.ExportAssignment:
+            return ScriptElementKind.alias;
+        default:
+            return ScriptElementKind.unknown;
     }
 }
