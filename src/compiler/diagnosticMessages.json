@@ -307,6 +307,10 @@
         "category": "Error",
         "code": 1107
     },
+    "A label cannot be referenced prior to its declaration.": {
+        "category": "Error",
+        "code": 1112
+    },
     "A 'return' statement can only be used within a function body.": {
         "category": "Error",
         "code": 1108

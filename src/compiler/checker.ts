@@ -53030,6 +53030,23 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         let current: Node = node;
         while (current) {
             if (isFunctionLikeOrClassStaticBlockDeclaration(current)) {
+                // Check if the label exists in the same scope (i.e., before the function boundary)
+                if (node.label) {
+                    // Scan sibling statements at this scope level for the label
+                    let sibling: Node = current.parent;
+                    if (sibling && "statements" in sibling) {
+                        const statements = (sibling as any).statements;
+                        if (statements) {
+                            for (const stmt of statements) {
+                                if (stmt === node) break;  // stop before the usage
+                                if (stmt.kind === SyntaxKind.LabeledStatement && (stmt as LabeledStatement).label.escapedText === node.label.escapedText) {
+                                    // Found the label in this scope but after the usage point
+                                    return grammarErrorOnNode(node, Diagnostics.A_label_cannot_be_referenced_prior_to_its_declaration);
+                                }
+                            }
+                        }
+                    }
+                }
                 return grammarErrorOnNode(node, Diagnostics.Jump_target_cannot_cross_function_boundary);
             }
 
